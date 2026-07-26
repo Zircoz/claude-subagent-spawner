@@ -21,6 +21,12 @@ Project-scoped instead:
 git clone https://github.com/<you>/subagent-spawner .claude/skills/subagent-spawner
 ```
 
+Or install via Vercel's skill registry:
+
+```bash
+sk install https://www.skills.sh/Zircoz/claude-subagent-spawner
+```
+
 Restart Claude Code, or run `/skills` to confirm it's loaded. It triggers on its own when you're about to spawn a subagent; invoke it directly with `/subagent-spawner`.
 
 ## What's in it
