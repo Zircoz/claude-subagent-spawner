@@ -32,9 +32,17 @@ Effort is a **behavioral signal, not a token cap**. At low effort a model still 
 - **Effort does not shorten prose.** On Opus 5 especially, changing effort does not reliably shorten the visible response. Ask for length in the prompt.
 - Effort is per-request and reshapes the rendered prompt, so **changing it mid-conversation invalidates prompt caching**. Pick one level for a subagent's whole run.
 
+## Strategy
+
+The table below answers "what kind of task is this." It does not answer "what am I willing to spend." Three knobs cover that — `speed` (`fast`/`normal`), `quality` (`top-notch`/`normal`), `cost` (`cheap`/`moderate`/`richie-rich`) — and they resolve with the archetype into the same four values.
+
+**Precedence: cost ceiling > quality floor > speed lever.** Speed buys down effort, never the model tier. Cost is the only knob that can lower the tier, and the only one that can refuse a task outright. Full resolution tables in `strategy.md`.
+
 ## Archetypes
 
 Copy the row that matches. `precision` is how prescriptive the handoff should be.
+
+This is the `standard` profile — the default strategy, `normal · normal · moderate`. For any other strategy, resolve here first, then take the matching cell from `strategy.md`.
 
 | Archetype | Model | Effort | Precision | Return budget |
 |---|---|---|---|---|
@@ -50,7 +58,7 @@ Copy the row that matches. `precision` is how prescriptive the handoff should be
 | **Long-horizon migration** (>30 min, many files) | Opus 5; Fable 5 if it has stalled | xhigh | Medium — the invariant that must hold, checkpoint cadence, where to write notes | Progress notes to a file; ≤500 tok to you |
 | **Frontier / everyone-is-stuck** | Fable 5 | high | Low — full problem, everything already tried | Whatever it takes |
 
-Parallel fan-out over the same archetype: drop one model tier or one effort level, and tighten the return contract. N subagents returning 2,000 tokens each is how an orchestrator drowns.
+Parallel fan-out over the same archetype is `speed: fast` under cost pressure, and resolves through the `swift` or `economy` tables in `strategy.md` rather than by a separate rule: drop one model tier or one effort level, and tighten the return contract. N subagents returning 2,000 tokens each is how an orchestrator drowns.
 
 ## Escalating after a bad result
 
@@ -69,5 +77,7 @@ Bad subagent result
 ```
 
 Symmetric down-shift: if a model has been doing routine work correctly for a while, drop a tier. If it is padding — over-verifying settled things, restating the plan — drop effort. Overthinking degrades results; it isn't free thoroughness.
+
+Escalation respects a stated cost ceiling. If you are already at it, "effort up one level" is not available — decompose the task instead (cheap search, one expensive decision) or say what more budget would buy. Spending past a ceiling silently is the failure this skill exists to prevent.
 
 Do not respond to a shallow result on a hard problem by prompting around it ("think carefully!") while leaving effort low. Raise effort. If latency forces low effort, *then* add targeted guidance like "this involves multistep reasoning; think before responding" and pair `low` with an explicit checklist when the task has multiple sections.
