@@ -1,5 +1,32 @@
 # Routing: model and effort
 
+## Strategy → dials
+
+Pick a strategy by expressing intent across three dimensions: **speed** (`fast` / `normal`), **quality** (`top-notch` / `normal`), **cost** (`cheap` / `moderate` / `richie-rich`). The strategy sets the starting model and effort; apply the four questions in `SKILL.md` to refine from there.
+
+| Strategy | Speed | Quality | Cost | → Model | → Effort | When to pick |
+|---|---|---|---|---|---|---|
+| **blitz** | fast | normal | cheap | Haiku 4.5 | n/a (fixed — no effort param) | High-volume fan-out, fully-specified mechanical tasks, latency-bound |
+| **balanced** | normal | normal | moderate | Sonnet 5 | medium | Most agentic subagents; the honest default |
+| **thorough** | normal | normal | moderate | Sonnet 5 | xhigh | Wide search, codebase archaeology, multi-source research |
+| **premium** | normal | top-notch | richie-rich | Opus 5 | xhigh | Subtle bugs, ambiguous problems, architectural decisions |
+| **frontier** | normal | top-notch | richie-rich | Fable 5 | high | Stalled long-horizon tasks; nothing else has worked |
+| **quick-premium** | fast | top-notch | moderate | Opus 5 | low | Expert glance: pattern recognition without a deep read |
+
+### Conflict resolution
+
+When dimensions point in different directions, resolve by priority: **quality > speed > cost**.
+
+- `top-notch` quality + `cheap` cost → quality wins → `quick-premium` (Opus 5 at `low` is the cheapest path to top-notch). Note the conflict in the decision trace.
+- `fast` speed + `top-notch` quality → `quick-premium`.
+- `fast` speed + `cheap` cost + `normal` quality → `blitz`.
+
+Always surface the conflict: `→ [quick-premium] opus-5 · low effort · (cost conflict: cheap overridden by top-notch quality)`
+
+### Presets vs. archetypes
+
+Strategies express **budget intent** (what trade-off you're willing to make). Archetypes (below) express **task shape** (what kind of work the subagent does). Use both: strategy first to set the budget, archetype to shape the handoff. Where they conflict, the archetype's model/effort guidance wins — it's task-specific and more precise.
+
 ## The models
 
 | Model | Character | Spawn a subagent on it when |

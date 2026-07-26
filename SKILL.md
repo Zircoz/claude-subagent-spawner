@@ -15,15 +15,35 @@ They trade against each other. Opus at low effort is five minutes with an expert
 
 The prompt closes the gap: **the less capable the model, the more prescriptive the handoff must be.** Capable models handle ambiguity and resent being over-constrained; smaller models need execution spelled out.
 
+## Strategy (optional shortcut)
+
+Before the four questions, you can pick a **strategy** — a named preset that sets the starting model and effort based on what you care about most.
+
+| Strategy | Speed | Quality | Cost | → Model | → Effort |
+|---|---|---|---|---|---|
+| **blitz** | fast | normal | cheap | Haiku 4.5 | n/a (fixed) |
+| **balanced** | normal | normal | moderate | Sonnet 5 | medium |
+| **thorough** | normal | normal | moderate | Sonnet 5 | xhigh |
+| **premium** | normal | top-notch | richie-rich | Opus 5 | xhigh |
+| **frontier** | normal | top-notch | richie-rich | Fable 5 | high |
+| **quick-premium** | fast | top-notch | moderate | Opus 5 | low |
+
+Pick by expressing what you care about across three dimensions: **speed** (`fast` / `normal`), **quality** (`top-notch` / `normal`), **cost** (`cheap` / `moderate` / `richie-rich`). If your signals conflict (e.g., top-notch quality + cheap cost), resolve by priority: **quality > speed > cost**, and note the conflict in the decision trace.
+
+The strategy sets the starting dials. The four questions below refine them — they can push the model up or effort up from wherever the strategy landed.
+
+Full strategy details and conflict examples → `references/routing.md`.
+
 ## Procedure
 
-1. Answer the four questions below.
-2. Pick model + effort — `references/routing.md`.
-3. Write the handoff with the six-block contract — `references/prompt-contract.md`.
-4. Spawn. If this shape of delegation recurs, persist it as an agent definition — `references/agent-defs.md`.
+1. Pick a strategy (optional — skip to step 2 if you know the dials directly).
+2. Answer the four questions below to refine.
+3. Pick model + effort — `references/routing.md`.
+4. Write the handoff with the six-block contract — `references/prompt-contract.md`.
+5. Spawn. If this shape of delegation recurs, persist it as an agent definition — `references/agent-defs.md`.
 
 State the decision in one line before spawning, so it can be corrected:
-`→ sonnet-5 · medium effort · precise instructions · return ≤400 tokens (locator fan-out ×4)`
+`→ [balanced] sonnet-5 · medium effort · precise instructions · return ≤400 tokens (locator fan-out ×4)`
 
 ## The four questions
 
