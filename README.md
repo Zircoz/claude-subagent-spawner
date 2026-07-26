@@ -12,19 +12,19 @@ Spawning a subagent is three decisions, not one. Most of the cost of getting it 
 ## Install
 
 ```bash
-git clone https://github.com/<you>/subagent-spawner ~/.claude/skills/subagent-spawner
+git clone https://github.com/Zircoz/claude-subagent-spawner ~/.claude/skills/subagent-spawner
 ```
 
 Project-scoped instead:
 
 ```bash
-git clone https://github.com/<you>/subagent-spawner .claude/skills/subagent-spawner
+git clone https://github.com/Zircoz/claude-subagent-spawner .claude/skills/subagent-spawner
 ```
 
 Or install via Vercel's skill registry:
 
 ```bash
-sk install https://www.skills.sh/Zircoz/claude-subagent-spawner
+npx skills add Zircoz/claude-subagent-spawner
 ```
 
 Restart Claude Code, or run `/skills` to confirm it's loaded. It triggers on its own when you're about to spawn a subagent; invoke it directly with `/subagent-spawner`.
