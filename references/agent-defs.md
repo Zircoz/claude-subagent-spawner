@@ -12,6 +12,7 @@ name: locator
 description: Find where things live in the codebase. Use when the answer is a set of file paths, not an explanation.
 tools: Grep, Glob, Read
 model: haiku
+strategy: { speed: fast, quality: normal, cost: cheap }
 ---
 ```
 
@@ -20,6 +21,7 @@ model: haiku
 - `tools` — omit to inherit everything. Naming them explicitly is usually better: a narrow tool set is itself a constraint on scope.
 - `model` — `haiku` · `sonnet` · `opus` · a full model string · `inherit`.
 - `effort` — where supported, set it here rather than per-call. **Check your CLI version** (`/agents`, or `claude --help`); effort placement has moved as the feature rolled out. If your version doesn't accept it, fall back to prompt steering (below).
+- `strategy` — **the CLI does not read this field.** It records *why* this model and effort were chosen (`references/strategy.md`), so the next person to edit the definition can re-derive it instead of guessing. `model` and `effort` must still carry the resolved values: `strategy: { quality: top-notch }` next to `model: haiku` gets you Haiku, silently. The strategy is documentation; the two lines above it are the configuration.
 
 The body of the file is the system prompt for that agent. Everything in `prompt-contract.md` applies — boundaries, return contract, and stop conditions belong here, not re-typed at every call site.
 
@@ -46,13 +48,14 @@ Prompt steering is a weaker lever than the parameter — it shapes behavior with
 
 ## Ready-made definitions
 
-**locator** — Haiku, effectively low effort
+**locator** — Haiku, effectively low effort · `economy`
 ```yaml
 ---
 name: locator
 description: Find where things live — definitions, call sites, config, ownership. Use when the deliverable is a list of file paths rather than an explanation.
 tools: Grep, Glob, Read
 model: haiku
+strategy: { speed: fast, quality: normal, cost: cheap }
 ---
 Find the requested code and report where it is. Do not explain it, do not
 evaluate it, do not suggest changes.
@@ -65,7 +68,7 @@ If there are more than 40 matches, report the count and the first 40.
 If you find nothing, say so and name the patterns you tried.
 ```
 
-**scout** — Sonnet, xhigh
+**scout** — Sonnet, xhigh · `standard`
 ```yaml
 ---
 name: scout
@@ -73,6 +76,7 @@ description: Answer "how does this actually work" about an unfamiliar subsystem.
 tools: Grep, Glob, Read, Bash
 model: sonnet
 effort: xhigh
+strategy: { speed: normal, quality: normal, cost: moderate }
 ---
 Build an accurate picture of how the named subsystem works, then compress it.
 
@@ -87,7 +91,7 @@ Return under 1,200 tokens:
 - Open questions you couldn't resolve
 ```
 
-**diagnostician** — Opus, xhigh
+**diagnostician** — Opus, xhigh · `premium`
 ```yaml
 ---
 name: diagnostician
@@ -95,6 +99,7 @@ description: Isolate the root cause of a subtle or intermittent failure. Use whe
 tools: Grep, Glob, Read, Bash
 model: opus
 effort: xhigh
+strategy: { speed: normal, quality: top-notch, cost: moderate }
 ---
 Find the true cause. Reproduce first if a repro exists; if it doesn't, establish
 one before theorizing.
@@ -110,7 +115,7 @@ Return under 1,000 tokens: root cause · the evidence that proves it · smallest
 correct fix · one line per hypothesis ruled out.
 ```
 
-**verifier** — Opus, high
+**verifier** — Opus, high · `premium`
 ```yaml
 ---
 name: verifier
@@ -118,6 +123,7 @@ description: Check completed work against a rubric or spec before it ships. Use 
 tools: Grep, Glob, Read, Bash
 model: opus
 effort: high
+strategy: { speed: normal, quality: top-notch, cost: moderate }
 ---
 Grade the work against the rubric or spec you were given. If none was given,
 ask for one — do not invent standards.
@@ -133,7 +139,7 @@ Return under 500 tokens:
 - Anything the rubric doesn't cover but a reviewer would stop on. Max 3.
 ```
 
-**codemod** — Sonnet, low
+**codemod** — Sonnet, low · `swift`
 ```yaml
 ---
 name: codemod
@@ -141,6 +147,7 @@ description: Apply a precisely described mechanical change across many files —
 tools: Grep, Glob, Read, Edit, Bash
 model: sonnet
 effort: low
+strategy: { speed: fast, quality: normal, cost: moderate }
 ---
 Apply exactly the transformation described. Nothing else.
 
@@ -158,6 +165,6 @@ one-line reasons, and whether the build or type-check still passes.
 - **Partition, don't duplicate.** Give each agent a disjoint slice — by directory, by source, by hypothesis. Overlapping slices return overlapping tokens.
 - **Uniform return schema.** Identical shape across the fan-out makes merging mechanical instead of interpretive.
 - **Budget the total.** Eight agents at 2,000 tokens is 16k arriving at once. Cut per-agent budgets as N grows.
-- **Cheaper per agent.** Fan-out is where you drop a model tier or an effort level; breadth is coming from parallelism, not from any single agent's depth.
+- **Cheaper per agent.** Fan-out is where you drop a model tier or an effort level; breadth is coming from parallelism, not from any single agent's depth. It is `speed: fast` under cost pressure — resolve it through the `swift` or `economy` tables in `strategy.md` instead of adjusting each agent by feel.
 - **Plan the merge first.** If you don't know how you'll reconcile conflicting results, you're not ready to spawn.
 - **Sequence when results feed each other.** Parallel is for independent work. A scout → diagnostician → verifier chain is sequential by nature, and each stage gets a smaller, sharper prompt than the last.

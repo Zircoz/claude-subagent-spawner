@@ -42,6 +42,8 @@ Return exactly:
 
 Precision is the inverse of model capability. Match it or you lose on both ends: an under-specified Haiku wanders, an over-specified Opus is boxed out of the insight you spawned it for.
 
+Precision is also where a cost ceiling gets paid back. When budget caps the model tier, the work moves into the handoff: the globs, the schema, the tie-breaks, the stop condition. It is the one lever that gets *cheaper* as you lean on it harder.
+
 | | Haiku 4.5 | Sonnet 5 | Opus 5 | Fable 5 |
 |---|---|---|---|---|
 | **Objective** | Imperative, one action | Outcome + success criteria | Outcome + why it matters | The problem, honestly stated |
