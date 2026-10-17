@@ -21,13 +21,13 @@ Project-scoped instead:
 git clone https://github.com/Zircoz/claude-subagent-spawner .claude/skills/subagent-spawner
 ```
 
-Or install via Vercel's skill registry:
+Or install via Vercel's skill registry (project-scoped by default; add `-g` for all projects):
 
 ```bash
-npx skills add Zircoz/claude-subagent-spawner
+npx skills add Zircoz/claude-subagent-spawner -a claude-code
 ```
 
-Restart Claude Code, or run `/skills` to confirm it's loaded. It triggers on its own when you're about to spawn a subagent; invoke it directly with `/subagent-spawner`.
+Claude Code picks up new skills without a restart (if `.claude/skills/` didn't exist when the session started, run `/reload-skills`). Run `/skills` to confirm it's listed. It triggers on its own when you're about to spawn a subagent; invoke it directly with `/subagent-spawner`. To update a cloned install, `git pull` inside its directory; for a registry install, `npx skills update`.
 
 ## What's in it
 
