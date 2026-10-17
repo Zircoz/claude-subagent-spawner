@@ -44,17 +44,57 @@ Precision is the inverse of model capability. Match it or you lose on both ends:
 
 Precision is also where a cost ceiling gets paid back. When budget caps the model tier, the work moves into the handoff: the globs, the schema, the tie-breaks, the stop condition. It is the one lever that gets *cheaper* as you lean on it harder.
 
-| | Haiku 4.5 | Sonnet 5 | Opus 5 | Fable 5 |
+| | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 | Fable 5.1 |
 |---|---|---|---|---|
-| **Objective** | Imperative, one action | Outcome + success criteria | Outcome + why it matters | The problem, honestly stated |
-| **Method** | Prescribe the steps | Suggest an approach | Say nothing about method | Say nothing about method |
-| **Examples** | Give 1–2 canonical ones | One if the format is unusual | Usually skip — they narrow the search space | Skip |
+| **Objective** | Imperative, one action, plus success criteria | Outcome + success criteria | Outcome + why it matters | The problem, honestly stated, and who it's for |
+| **Method** | Prescribe the steps | Suggest an approach | Say nothing about method | Say nothing about method; step lists *reduce* its quality |
+| **Examples** | Give 1–2 canonical ones | One if the format is unusual | Usually skip; they narrow the search space | Skip |
 | **Output** | Rigid schema | Schema or clear shape | Shape + budget | Budget |
 | **Judgment calls** | Enumerate and resolve them in advance | Name the tie-breaker | Hand it the constraints, let it decide | Hand it the constraints |
+| **Boundaries** | Explicit stop condition and tool budget | Explicit stop condition | Off-limits list | Off-limits list, spelled out; it takes adjacent actions otherwise |
+
+Haiku 5.5 follows instructions far better than Haiku 4.5 did, so it tolerates outcome-plus-criteria phrasing. It still pays to resolve judgment calls for it in advance, though: precision is where its 20× price advantage gets earned back.
 
 For capable models, replace examples with a well-designed interface: expressive parameters, self-describing field names, an enum whose values imply their use. A tool signature teaches more than three worked examples, and doesn't fence in the exploration.
 
 **Prefer references over descriptions.** A failing test is a better spec than a paragraph about correctness. An HTML mockup beats a description of the design. A rubric file beats "make it good." Point the subagent at a file; don't paraphrase it.
+
+## Lines that fix known quirks
+
+Each of these patches a failure documented for the current models. Add one only when its condition applies, because every line spends attention.
+
+**Verification:** for Sonnet 5.5 or Haiku 5.5 at `low`/`medium` doing code changes. At those levels they sometimes report "done" without running anything.
+```
+When you change code that can be run, built, or type-checked, run a real check
+that exercises the change before reporting it done: the project's tests,
+type-checker, or build. A syntax-only check, or a check that failed to start,
+does not count. If no real check can run, say which one you didn't run and why.
+```
+
+**Finish the job:** for Haiku 5.5 at `low` under a long system prompt, or any autonomous run that keeps stopping to ask.
+```
+Keep working until everything asked for is done; stop to ask only when you
+can't go on without input or before a risky step. When the work is done and
+checked, stop and report. Don't add features or refactors that weren't asked for.
+```
+
+**Search grounding:** for Haiku 5.5 (and anything at `low`) with a search tool.
+```
+The current date is <date>. Your training data ends well before it. Versions,
+prices, rules, and anything "latest" may have changed, so search for those
+even when you feel sure.
+```
+
+**Don't discourage tools:** for Sonnet 5.5, which follows "minimize tool calls" literally. Cap tool use with a budget ("~15 calls"), not a mood ("only when strictly necessary").
+
+**Boundaries and grounded claims:** for Fable 5.1 above all, and for any long autonomous run.
+```
+Before reporting progress, audit each claim against a tool result from this
+session. If something is not verified, say so. Don't take actions outside the
+task: no extra branches, no drafts, no cleanup of adjacent code.
+```
+
+**Give the reason:** for Fable 5.1. It does better when it knows what the output enables. Add one line: "This is for <who>; they need it to <do what>."
 
 ## Verbosity, both directions
 
@@ -86,7 +126,7 @@ Ask for "conclusion first, evidence second" as a rule — it keeps the useful pa
 
 ## Worked examples
 
-**Locator — Haiku 4.5, fixed effort, maximum precision**
+**Locator: Haiku 5.5, low effort, maximum precision**
 
 ```
 Find every call site of `chargeCard` in this repo.
@@ -100,7 +140,7 @@ If you find more than 40, stop and report the count plus the first 40.
 Tools: Grep, Glob, Read.
 ```
 
-**Debugging — Opus 5, xhigh effort, minimum precision**
+**Debugging: Opus 5.5, high effort, minimum precision**
 
 ```
 Customers on the annual plan are charged twice when a payment retry
