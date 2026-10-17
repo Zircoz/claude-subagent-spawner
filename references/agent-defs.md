@@ -12,22 +12,28 @@ name: locator
 description: Find where things live in the codebase. Use when the answer is a set of file paths, not an explanation.
 tools: Grep, Glob, Read
 model: haiku
+effort: low
+maxTurns: 15
 strategy: { speed: fast, quality: normal, cost: cheap }
 ---
 ```
 
-- `name` — lowercase, hyphenated. This is what you type to invoke it.
-- `description` — the trigger. Write it as *when to reach for this*, in the vocabulary you'd actually use. This is the field that decides whether the agent ever gets picked.
-- `tools` — omit to inherit everything. Naming them explicitly is usually better: a narrow tool set is itself a constraint on scope.
-- `model` — `haiku` · `sonnet` · `opus` · a full model string · `inherit`.
-- `effort` — where supported, set it here rather than per-call. **Check your CLI version** (`/agents`, or `claude --help`); effort placement has moved as the feature rolled out. If your version doesn't accept it, fall back to prompt steering (below).
-- `strategy` — **the CLI does not read this field.** It records *why* this model and effort were chosen (`references/strategy.md`), so the next person to edit the definition can re-derive it instead of guessing. `model` and `effort` must still carry the resolved values: `strategy: { quality: top-notch }` next to `model: haiku` gets you Haiku, silently. The strategy is documentation; the two lines above it are the configuration.
+- `name`: lowercase, hyphenated. This is what you type to invoke it.
+- `description`: the trigger. Write it as *when to reach for this*, in the vocabulary you'd actually use. This is the field that decides whether the agent ever gets picked.
+- `tools`: omit to inherit everything. Naming them explicitly is usually better, because a narrow tool set is itself a constraint on scope. `disallowedTools` subtracts from the inherited set instead.
+- `model`: `haiku` · `sonnet` · `opus` · `fable` · a full model ID · `inherit`. On the Anthropic API the aliases currently resolve to Haiku 5.5, Sonnet 5.5, Opus 5.5, and Fable 5.1; some cloud providers resolve them to older versions. **Set it explicitly.** An omitted `model` inherits the main session's model, so switching the session to Opus silently moves every unpinned subagent to Opus too. Pin a full ID (`claude-sonnet-5-5`) when you need the routing to survive alias changes.
+- `effort`: `low` · `medium` · `high` · `xhigh` · `max`. It overrides the session's effort, but not the `CLAUDE_CODE_EFFORT_LEVEL` env var. **Always set it**, because defaults differ by model (Opus/Sonnet/Haiku 5.5 default to `medium` in Claude Code; Fable 5.1 to `high`). Recent CLIs (v2.1.292+) also accept a per-invocation `effort` that overrides the field, so a definition can carry the archetype's default while the call site applies strategy.
+- `maxTurns`: a hard stop condition. Use it to back the prompt's "if you can't find it in ~N calls, return what you have" with an enforced ceiling, especially on Fable runs, which run long.
+- `background: true`: runs the subagent without blocking the caller. Opus 5.5 and Fable 5.1 leads finish sooner when they can keep working while subagents run.
+- `strategy`: **the CLI does not read this field**; unrecognized fields are ignored. It records *why* this model and effort were chosen (`references/strategy.md`), so the next person to edit the definition can re-derive it instead of guessing. `model` and `effort` must still carry the resolved values: `strategy: { quality: top-notch }` next to `model: haiku` gets you Haiku, silently. The strategy is documentation; the lines above it are the configuration.
 
-The body of the file is the system prompt for that agent. Everything in `prompt-contract.md` applies — boundaries, return contract, and stop conditions belong here, not re-typed at every call site.
+Watch for overrides that defeat per-agent routing. `CLAUDE_CODE_SUBAGENT_MODEL` with `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` overrides every definition's `model`, and an org `availableModels` allowlist can substitute a different model, with only a warning to show for it.
+
+The body of the file is the system prompt for that agent. Everything in `prompt-contract.md` applies: boundaries, return contract, and stop conditions belong here, not re-typed at every call site. The quirk-fixing lines in `prompt-contract.md` belong here too, since they're properties of the model, not the call.
 
 ## Approximating effort in the prompt
 
-When you can't set effort declaratively, the observable behaviors are still steerable. Effort governs how many files get read, how much gets verified, and how far a multi-step task runs before checking in — so say those things directly.
+When you can't set effort declaratively (an older CLI, a harness without the field, or a previous-generation model such as Haiku 4.5 that takes no effort parameter), the observable behaviors are still steerable. Effort governs how many files get read, how much gets verified, and how far a multi-step task runs before checking in — so say those things directly.
 
 *Low-effort equivalent:*
 ```
@@ -48,13 +54,15 @@ Prompt steering is a weaker lever than the parameter — it shapes behavior with
 
 ## Ready-made definitions
 
-**locator** — Haiku, effectively low effort · `economy`
+**locator**: Haiku 5.5, low · `economy`
 ```yaml
 ---
 name: locator
 description: Find where things live — definitions, call sites, config, ownership. Use when the deliverable is a list of file paths rather than an explanation.
 tools: Grep, Glob, Read
 model: haiku
+effort: low
+maxTurns: 15
 strategy: { speed: fast, quality: normal, cost: cheap }
 ---
 Find the requested code and report where it is. Do not explain it, do not
@@ -68,14 +76,14 @@ If there are more than 40 matches, report the count and the first 40.
 If you find nothing, say so and name the patterns you tried.
 ```
 
-**scout** — Sonnet, xhigh · `standard`
+**scout**: Sonnet 5.5, high · `standard`
 ```yaml
 ---
 name: scout
 description: Answer "how does this actually work" about an unfamiliar subsystem. Use for codebase archaeology before a change, when the shape of the thing is unknown.
 tools: Grep, Glob, Read, Bash
 model: sonnet
-effort: xhigh
+effort: high
 strategy: { speed: normal, quality: normal, cost: moderate }
 ---
 Build an accurate picture of how the named subsystem works, then compress it.
@@ -91,7 +99,7 @@ Return under 1,200 tokens:
 - Open questions you couldn't resolve
 ```
 
-**diagnostician** — Opus, xhigh · `premium`
+**diagnostician**: Opus 5.5, xhigh · `premium`
 ```yaml
 ---
 name: diagnostician
@@ -115,15 +123,15 @@ Return under 1,000 tokens: root cause · the evidence that proves it · smallest
 correct fix · one line per hypothesis ruled out.
 ```
 
-**verifier** — Opus, high · `premium`
+**verifier**: Opus 5.5, medium · `standard` (`premium` → `high`)
 ```yaml
 ---
 name: verifier
 description: Check completed work against a rubric or spec before it ships. Use for pre-merge review, spec conformance, or grading another agent's output.
 tools: Grep, Glob, Read, Bash
 model: opus
-effort: high
-strategy: { speed: normal, quality: top-notch, cost: moderate }
+effort: medium
+strategy: { speed: normal, quality: normal, cost: moderate }
 ---
 Grade the work against the rubric or spec you were given. If none was given,
 ask for one — do not invent standards.
@@ -139,7 +147,9 @@ Return under 500 tokens:
 - Anything the rubric doesn't cover but a reviewer would stop on. Max 3.
 ```
 
-**codemod** — Sonnet, low · `swift`
+`medium` is deliberate. Lower effort gave Opus 5.5 its best review precision in CodeRabbit's tests; higher effort found more of the hardest bugs at the cost of noise. For the every-PR pass, `model: sonnet` at `medium` is the cheaper fit. Keep thinking on, which costs CodeRabbit ~15% per review and is worth it.
+
+**codemod**: Sonnet 5.5, low · `swift`
 ```yaml
 ---
 name: codemod
@@ -156,8 +166,11 @@ do not add or remove comments. Match the surrounding style in anything you write
 
 If a site is ambiguous, skip it and list it — do not guess.
 
+After the edits, run the build or type-check. A syntax-only check, or a check
+that failed to start, does not count; if none can run, say so.
+
 Return under 300 tokens: files changed (count and paths), sites skipped with
-one-line reasons, and whether the build or type-check still passes.
+one-line reasons, and the build or type-check result.
 ```
 
 ## Fan-out
@@ -167,4 +180,6 @@ one-line reasons, and whether the build or type-check still passes.
 - **Budget the total.** Eight agents at 2,000 tokens is 16k arriving at once. Cut per-agent budgets as N grows.
 - **Cheaper per agent.** Fan-out is where you drop a model tier or an effort level; breadth is coming from parallelism, not from any single agent's depth. It is `speed: fast` under cost pressure — resolve it through the `swift` or `economy` tables in `strategy.md` instead of adjusting each agent by feel.
 - **Plan the merge first.** If you don't know how you'll reconcile conflicting results, you're not ready to spawn.
+- **Let capable leads delegate asynchronously.** An Opus 5.5 or Fable 5.1 orchestrator directing many subagents is now a dependable pattern; Stripe ran one Opus 5.5 session directing a dozen others through a 40-PR rebase. Spawn with `background: true` so the lead keeps working instead of blocking on the slowest child.
+- **Keep Sonnet 5.5 off `max` in a fan-out.** At `max` it spawns its own fan-outs, and the recursion produces timeouts and out-of-scope edits.
 - **Sequence when results feed each other.** Parallel is for independent work. A scout → diagnostician → verifier chain is sequential by nature, and each stage gets a smaller, sharper prompt than the last.

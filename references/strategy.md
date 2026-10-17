@@ -30,29 +30,43 @@ Twelve combinations, five profiles.
 | normal | normal | moderate | `standard` |
 | normal | normal | richie-rich | `standard` — budget with no quality demand buys nothing |
 | fast | normal | moderate | `swift` |
-| fast | normal | richie-rich | `swift` — same; the budget is not the binding constraint |
+| fast | normal | richie-rich | `swift`; where the harness exposes it, Opus 5.5 fast mode is the one thing the budget can buy here |
 | normal | normal | cheap | `economy` |
 | fast | normal | cheap | `economy` — `cheap` already floors both dials; `fast` adds nothing |
 | normal | top-notch | moderate | `premium` |
 | fast | top-notch | moderate | `premium`, one effort level down |
 | normal | top-notch | richie-rich | `no-limits` |
-| fast | top-notch | richie-rich | `no-limits`, effort capped at low–medium — tier stays, deliberation goes |
+| fast | top-notch | richie-rich | `no-limits`, effort capped at low–medium — tier stays, deliberation goes. Or keep effort and buy speed with Opus 5.5 fast mode |
 | normal | top-notch | cheap | **contested** → `economy` + maximum precision. See *When cheap can't buy it* |
 | fast | top-notch | cheap | **contested** → same, plus a tighter return contract |
 
-Strategy resolves to an effort level, and effort is per-request — changing it mid-run invalidates prompt caching. Fix the strategy for a subagent's whole run.
+Strategy resolves to an effort level, and a top-level effort change invalidates prompt caching. Fix the strategy for a subagent's whole run.
+
+## Prices that drive the tables
+
+| | Input $/MTok | Output $/MTok | Relative |
+|---|---|---|---|
+| Haiku 5.5 | 0.10 (0.50 above 100K-token prompts) | 0.50 (2.50) | 1× |
+| Sonnet 5.5 | 2 | 10 | 20× |
+| Opus 5.5 | 4 | 20 | 40× |
+| Fable 5.1 | 10 | 50 | 100× |
+
+Two consequences shape every profile below:
+
+- **The Sonnet → Opus step is cheap (2×), and the Sonnet → Haiku step is a 95% saving.** The tier that `cost` gives up is now usually Sonnet → Haiku, not Opus → Sonnet.
+- **Judge cost per completed task, not per token.** Each 5.5 model at a lower effort beats its predecessor at a higher one, and finishes in fewer requests. A cheaper model that needs a retry is not cheaper.
 
 ## The five profiles
 
-**`economy`** — Sonnet 5 is the tier ceiling, `medium` the effort ceiling. The saved capability is paid back in precision: name the globs, the schema, the stop condition, the skip-and-list rule. Cheap models do not wander when there is nowhere to wander. Four archetypes have no economy configuration.
+**`economy`**: Sonnet 5.5 is the tier ceiling and `medium` the effort ceiling. Haiku 5.5 takes everything it can, which is more than Haiku used to: it now has effort levels and follows instructions well. The saved capability is paid back in precision: name the globs, the schema, the stop condition, the skip-and-list rule. Cheap models do not wander when there is nowhere to wander. Keep Haiku jobs short so their prompts stay under the 100K price cliff. Four archetypes have no economy configuration.
 
-**`swift`** — Tier holds, effort drops, precision rises, return contracts hard. Most perceived latency is output length and tool-call count, not model choice, so cap both explicitly. This is also the fan-out profile: breadth comes from parallelism, not from any one agent's depth.
+**`swift`**: The tier holds; effort drops, precision rises, and return contracts get hard. Most perceived latency is output length and tool-call count, not model choice, so cap both explicitly. Haiku 5.5 is the fastest model at standard speed; Sonnet 5.5 is 30% faster than Sonnet 5. This is also the fan-out profile: breadth comes from parallelism, not from any one agent's depth.
 
-**`standard`** — The archetype table in `routing.md`, unchanged. Not reproduced here.
+**`standard`**: The archetype table in `routing.md`, unchanged. Not reproduced here.
 
-**`premium`** — Opus 5 floor wherever judgment is the bottleneck; effort at or one above baseline. Note that the base table is *already* premium for the hard archetypes — deep debugging, design, migration, and frontier are unchanged. `quality: top-notch` mostly changes the easy half of the table, where the default was chosen for thrift.
+**`premium`**: Opus 5.5 is the floor wherever judgment is the bottleneck. The easy half of the table moves up a tier (cheap now that Opus is 2× Sonnet), and the hard half moves up one effort level, `high` → `xhigh`.
 
-**`no-limits`** — Top tier, `xhigh`–`max`, and the thing an unlimited budget actually buys: **redundancy**. Two agents with different strategies reconciled, or a worker paired with an independent verifier, beats one agent at a higher number. Thinking cannot be disabled at `xhigh` or `max` — set `max_tokens` around 64k on every row in this profile so it has room to think across tool calls.
+**`no-limits`**: Top tier at `xhigh`–`max`, plus the thing an unlimited budget actually buys: **redundancy**. Two agents with different strategies reconciled, a worker paired with an independent verifier, or Opus 5.5 and Fable 5.1 attacking the same problem: each beats one agent at a higher number. CodeRabbit's data makes the case concretely: its lower- and higher-effort Opus 5.5 configurations each caught 10 of 13 hard bugs, but not the same 10. On the API, set `max_tokens` around 64k on every row in this profile so it has room to think across tool calls. Don't run Sonnet 5.5 at `max`; it over-delegates and scores below its own `xhigh`.
 
 ## Archetype × profile
 
@@ -62,15 +76,15 @@ Copy the cell. `standard` lives in `routing.md`.
 
 | Archetype | Model | Effort | Precision | Return budget |
 |---|---|---|---|---|
-| **Locator** | Haiku 4.5 | fixed | Maximum — globs, directories, stop condition | ≤300 tok, `file:line` only |
-| **Mechanical edit** | Haiku 4.5 if sites are uniform; Sonnet 5 if they vary | fixed / low | Maximum — exact before/after, do-not-touch list, skip-and-list rule | ≤300 tok + diff |
-| **Extract / classify / convert** | Haiku 4.5 | fixed | Maximum — schema, enum values, tie-breaks | Exact schema, nothing else |
-| **Bounded implementation** | Sonnet 5 | low | High — the interface, the file to imitate, the invariant | ≤400 tok + diff |
-| **Research / synthesis** | Sonnet 5 | medium | High — exact questions, named sources, no open browsing | ≤800 tok, conclusion first |
-| **Codebase archaeology** | Sonnet 5 | medium | High — name the entry points; ask for the path, not the map | ≤800 tok |
+| **Locator** | Haiku 5.5 | low | Maximum: globs, directories, stop condition | ≤300 tok, `file:line` only |
+| **Mechanical edit** | Haiku 5.5 if sites are uniform; Sonnet 5.5 if they vary | low | Maximum: exact before/after, do-not-touch list, skip-and-list rule | ≤300 tok + diff |
+| **Extract / classify / convert** | Haiku 5.5 | low | Maximum: schema, enum values, tie-breaks | Exact schema, nothing else |
+| **Bounded implementation** | Sonnet 5.5 | low | High: the interface, the file to imitate, the invariant, plus the verification line (`low` skips checks) | ≤400 tok + diff |
+| **Research / synthesis** | Haiku 5.5 at medium for lookup-shaped questions (give it today's date); Sonnet 5.5 at low when the synthesis matters | medium / low | High: exact questions, named sources, no open browsing | ≤800 tok, conclusion first |
+| **Codebase archaeology** | Sonnet 5.5 | medium | High: name the entry points; ask for the path, not the map | ≤800 tok |
 | **Deep debugging** | — | — | — | **Don't.** Split it: cheap locator to narrow the surface, then one expensive call |
 | **Design / architecture / trade-off call** | — | — | — | **Don't.** Cheap architecture is the most expensive line item you will ever ship |
-| **Verifier / critic** | Sonnet 5 | low | Maximum — rubric as a file, pass/fail per item | ≤300 tok verdict |
+| **Verifier / critic** | Haiku 5.5 for mechanical, per-item rubrics | high | Maximum: rubric as a file, pass/fail per item | ≤300 tok verdict |
 | **Long-horizon migration** | — | — | — | **Don't** as one agent. Pay once for the plan, then run economy codemods per slice |
 | **Frontier / everyone-is-stuck** | — | — | — | **Don't.** Nothing cheap cracks what nothing else could |
 
@@ -78,51 +92,51 @@ Copy the cell. `standard` lives in `routing.md`.
 
 | Archetype | Model | Effort | Precision | Return budget |
 |---|---|---|---|---|
-| **Locator** | Haiku 4.5 | fixed | Maximum | ≤300 tok; partition across N parallel |
-| **Mechanical edit** | Sonnet 5 | low | Maximum | ≤300 tok + diff; partition by directory |
-| **Extract / classify / convert** | Haiku 4.5 | fixed | Maximum | Exact schema, nothing else |
-| **Bounded implementation** | Sonnet 5 | low | High — interface plus a file to imitate | ≤400 tok + diff |
-| **Research / synthesis** | Sonnet 5 | low–medium | High — three named sources, question shaped as a list or a yes/no | ≤500 tok, conclusion first |
-| **Codebase archaeology** | Sonnet 5 | medium | High — entry points named, tool budget ~15 calls | ≤600 tok |
-| **Deep debugging** | Opus 5 | low | Low on method, high on situation — repro, ruled-out, invariant | ≤500 tok. Buying recognition, not search |
-| **Design / architecture / trade-off call** | Opus 5 | low–medium | Low — constraints only | ≤400 tok: recommendation first, runners-up one line each |
-| **Verifier / critic** | Sonnet 5 | low | Maximum — rubric as a file | ≤300 tok verdict |
-| **Long-horizon migration** | Opus 5 for the plan, then parallel economy codemods | medium | Medium — the invariant and the slice boundaries | Plan ≤500 tok; slices report ≤300 tok each |
-| **Frontier / everyone-is-stuck** | Fable 5 | low–medium | Low | Whatever it takes. Fable's `low` often beats prior-generation `xhigh` |
+| **Locator** | Haiku 5.5 | low | Maximum | ≤300 tok; partition across N parallel |
+| **Mechanical edit** | Sonnet 5.5 | low | Maximum | ≤300 tok + diff; partition by directory |
+| **Extract / classify / convert** | Haiku 5.5 | low | Maximum | Exact schema, nothing else |
+| **Bounded implementation** | Sonnet 5.5 | low | High: interface plus a file to imitate, plus the verification line | ≤400 tok + diff |
+| **Research / synthesis** | Sonnet 5.5 | low | High: three named sources, question shaped as a list or a yes/no | ≤500 tok, conclusion first |
+| **Codebase archaeology** | Sonnet 5.5 | medium | High: entry points named, tool budget ~15 calls | ≤600 tok |
+| **Deep debugging** | Opus 5.5 | low | Low on method, high on situation: repro, ruled-out, invariant | ≤500 tok. Buying recognition, not search; Opus 5.5 at `low` out-finds Opus 5 at `high` |
+| **Design / architecture / trade-off call** | Opus 5.5 | low | Low: constraints only | ≤400 tok: recommendation first, runners-up one line each |
+| **Verifier / critic** | Opus 5.5 for judgment; Sonnet 5.5 for the routine pass | low | Maximum: rubric as a file | ≤300 tok verdict |
+| **Long-horizon migration** | Opus 5.5 for the plan, then parallel Sonnet 5.5 codemods at low | medium | Medium: the invariant and the slice boundaries | Plan ≤500 tok; slices report ≤300 tok each |
+| **Frontier / everyone-is-stuck** | Fable 5.1 | low–medium | Low | Whatever it takes. Fable's `low` is competitive with Opus and Sonnet on cost per task |
 
 ### `premium`
 
 | Archetype | Model | Effort | Precision | Return budget |
 |---|---|---|---|---|
-| **Locator** | Sonnet 5 | medium | Medium — the question and what counts as a use; ask for indirect and dynamic references | ≤400 tok, `file:line` + one clause |
-| **Mechanical edit** | Sonnet 5 | medium | Medium — the intent behind the pattern, plus the do-not-touch list | ≤400 tok + diff; ambiguous sites listed, never guessed |
-| **Extract / classify / convert** | Sonnet 5 | low–medium | High — schema and tie-breaks, plus "flag anything the schema can't hold" | Schema + a short exceptions list |
-| **Bounded implementation** | Opus 5 | high | Medium — objective, constraints, the invariant; not the how | ≤800 tok + diff |
-| **Research / synthesis** | Opus 5 | xhigh | Low–medium — the question, sources of truth, what "answered" means | 1,000–2,000 tok, conclusion first |
-| **Codebase archaeology** | Opus 5 | xhigh | Low — the question and the entry points; let it wander | 1,000–1,500 tok |
-| **Deep debugging** | Opus 5 | xhigh | Low — symptom, repro, ruled-out. Do not prescribe the search | ≤1,000 tok: cause, evidence, fix |
-| **Design / architecture / trade-off call** | Opus 5 | xhigh | Low — constraints and non-negotiables, not a preferred answer | Structured: options, trade-offs, recommendation |
-| **Verifier / critic** | Opus 5 | high | Medium — rubric as a reference file | ≤500 tok verdict + violations |
-| **Long-horizon migration** | Opus 5; Fable 5 if it has stalled | xhigh | Medium — the invariant, checkpoint cadence, where to write notes | Notes to a file; ≤500 tok to you |
-| **Frontier / everyone-is-stuck** | Fable 5 | high | Low — full problem, everything already tried | Whatever it takes |
+| **Locator** | Sonnet 5.5 | medium | Medium: the question and what counts as a use; ask for indirect and dynamic references | ≤400 tok, `file:line` + one clause |
+| **Mechanical edit** | Sonnet 5.5 | medium | Medium: the intent behind the pattern, plus the do-not-touch list | ≤400 tok + diff; ambiguous sites listed, never guessed |
+| **Extract / classify / convert** | Sonnet 5.5 | low | High: schema and tie-breaks, plus "flag anything the schema can't hold" | Schema + a short exceptions list |
+| **Bounded implementation** | Opus 5.5 | medium | Medium: objective, constraints, the invariant; not the how | ≤800 tok + diff |
+| **Research / synthesis** | Opus 5.5 | high | Low–medium: the question, sources of truth, what "answered" means | 1,000–2,000 tok, conclusion first |
+| **Codebase archaeology** | Opus 5.5 | high | Low: the question and the entry points; let it wander | 1,000–1,500 tok |
+| **Deep debugging** | Opus 5.5 | xhigh | Low: symptom, repro, ruled-out. Do not prescribe the search | ≤1,000 tok: cause, evidence, fix |
+| **Design / architecture / trade-off call** | Opus 5.5 | xhigh | Low: constraints and non-negotiables, not a preferred answer | Structured: options, trade-offs, recommendation |
+| **Verifier / critic** | Opus 5.5 | high | Medium: rubric as a reference file | ≤500 tok verdict + violations |
+| **Long-horizon migration** | Opus 5.5; Fable 5.1 if it has stalled | xhigh | Medium: the invariant, checkpoint cadence, where to write notes | Notes to a file; ≤500 tok to you |
+| **Frontier / everyone-is-stuck** | Fable 5.1 | high | Low: full problem, everything already tried | Whatever it takes |
 
 ### `no-limits`
 
-Set `max_tokens` ~64k on every row here.
+Set `max_tokens` around 64k on every row here (API).
 
 | Archetype | Model | Effort | Precision | Return budget |
 |---|---|---|---|---|
-| **Locator** | Sonnet 5 | xhigh | Low — the question; let it decide what counts | ≤600 tok + a confidence note. Or two locators with different strategies, reconciled |
-| **Mechanical edit** | Opus 5 | high | Low–medium — the intent; let it flag where the pattern is wrong | ≤600 tok + diff + sites the pattern should not touch |
-| **Extract / classify / convert** | Opus 5 | medium | Medium — schema plus "tell me where the schema is wrong" | Schema + exceptions + a critique of the schema |
-| **Bounded implementation** | Opus 5 | xhigh | Low — objective and constraints; pair it with a separate verifier | ≤800 tok + diff + verifier verdict |
-| **Research / synthesis** | Opus 5; Fable 5 if the synthesis *is* the job | max | Low | ≤2,000 tok + a sources appendix |
-| **Codebase archaeology** | Opus 5 | max | Low | 1,500 tok to you + a written map committed to a file |
-| **Deep debugging** | Opus 5; Fable 5 if Opus has already failed | max | Minimum — the situation exhaustively, the method not at all | ≤1,000 tok: cause, evidence, fix |
-| **Design / architecture / trade-off call** | Fable 5 | high–xhigh | Minimum | Structured; then a separate Opus verifier against the constraints |
-| **Verifier / critic** | Opus 5 | xhigh | Medium | ≤500 tok. Two verifiers with different rubrics is the better spend |
-| **Long-horizon migration** | Fable 5 | xhigh | Medium — the invariant, checkpoint every N files, the notes file | Notes to a file; ≤500 tok to you |
-| **Frontier / everyone-is-stuck** | Fable 5 | max | Minimum | Whatever it takes |
+| **Locator** | Sonnet 5.5 | high | Low: the question; let it decide what counts | ≤600 tok + a confidence note. Or two locators with different strategies, reconciled |
+| **Mechanical edit** | Opus 5.5 | medium | Low–medium: the intent; let it flag where the pattern is wrong | ≤600 tok + diff + sites the pattern should not touch |
+| **Extract / classify / convert** | Opus 5.5 | low–medium | Medium: schema plus "tell me where the schema is wrong" | Schema + exceptions + a critique of the schema |
+| **Bounded implementation** | Opus 5.5 | high | Low: objective and constraints; pair it with a separate verifier | ≤800 tok + diff + verifier verdict |
+| **Research / synthesis** | Opus 5.5; Fable 5.1 if the synthesis *is* the job | xhigh | Low | ≤2,000 tok + a sources appendix |
+| **Codebase archaeology** | Opus 5.5 | xhigh | Low | 1,500 tok to you + a written map committed to a file |
+| **Deep debugging** | Opus 5.5 at max, with Fable 5.1 on the same problem in parallel as an independent attempt | max / high | Minimum: the situation exhaustively, the method not at all | ≤1,000 tok each: cause, evidence, fix; reconcile |
+| **Design / architecture / trade-off call** | Fable 5.1 | high–xhigh | Minimum | Structured; then a separate Opus 5.5 verifier against the constraints |
+| **Verifier / critic** | Two Opus 5.5 verifiers: one at low–medium for precision, one at max for recall on hard cases | low–medium + max | Medium | ≤500 tok each. They miss different things; reconcile |
+| **Long-horizon migration** | Fable 5.1, or Opus 5.5 orchestrating async subagents | xhigh / high | Medium: the invariant, checkpoint every N files, the notes file | Notes to a file; ≤500 tok to you |
+| **Frontier / everyone-is-stuck** | Fable 5.1 | max | Minimum | Whatever it takes |
 
 ## When cheap can't buy it
 
@@ -141,8 +155,8 @@ Escalation respects the ceiling too. If a result comes back thin and you are alr
 State the resolution before spawning, strategy first, so the derivation can be corrected and not just the outcome:
 
 ```
-→ [fast · normal · cheap] → haiku-4.5 · fixed effort · maximum precision · return ≤300 tok   (locator fan-out ×6)
-→ [normal · top-notch · richie-rich] → opus-5 · max effort · minimum precision · return ≤1000 tok   (deep debugging)
+→ [fast · normal · cheap] → haiku-5.5 · low effort · maximum precision · return ≤300 tok   (locator fan-out ×6)
+→ [normal · top-notch · richie-rich] → opus-5.5 · max effort + fable-5.1 · high in parallel · minimum precision · return ≤1000 tok each   (deep debugging)
 ```
 
 In a persisted agent definition, record the strategy as intent alongside the resolved values — see `agent-defs.md`:
